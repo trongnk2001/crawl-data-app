@@ -1,7 +1,0 @@
-Flask
-psycopg2-binary==2.9.5 #Kết nối PostgreSQL
-SQLAlchemy==2.0.4 #ORM
-python-dotenv==1.0.0 #Quản lý env
-PyJWT==2.6.0 #Tạo & kiểm tra JWT
-bcrypt==4.0.1 #Hash mật khẩu
-Werkzeug==2.2.3
