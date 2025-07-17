@@ -1,0 +1,70 @@
+version: "3.8"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.4
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+  kafka:
+    image: confluentinc/cp-kafka:7.4.4
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  producer:
+    build: ./producer-python
+    hostname: producer
+    container_name: producer
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER: "kafka:9092"
+      INPUT_TOPIC: "input-topic"
+      WAIT_FOR_KAFKA: "true"
+    restart: on-failure
+
+  stream-processor:
+    build: ./stream-processor-java
+    hostname: stream-processor
+    container_name: stream-processor
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER: "kafka:9092"
+      INPUT_TOPIC: "input-topic"
+      OUTPUT_TOPIC: "output-topic"
+    restart: on-failure
+
+  consumer:
+    build: ./consumer-python
+    hostname: consumer
+    container_name: consumer
+    depends_on:
+      - kafka
+      - stream-processor
+    environment:
+      KAFKA_BROKER: "kafka:9092"
+      OUTPUT_TOPIC: "output-topic"
+      GROUP_ID: "python-consumer-group"
+      WAIT_FOR_KAFKA: "true"
+    restart: on-failure
+
+volumes:
+  zk-data:
+  zk-log:
+
+networks:
+  default:
+    name: kafka-network
+    driver: bridge
+    attachable: true
